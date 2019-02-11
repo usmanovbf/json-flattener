@@ -150,7 +150,7 @@ public class JsonUnflattenerTest {
     String json = "{\"abc\":{\"def\":123}}";
     assertEquals(json,
         new JsonUnflattener(
-            new JsonFlattener(json).withSeparator('*').flatten())
+            new JsonFlattener(json).withSeparator("*").flatten())
                 .withSeparator('*').unflatten());
   }
 

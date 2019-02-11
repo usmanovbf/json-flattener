@@ -1,0 +1,18 @@
+{
+  "type": "bid",
+  "timestamp": 4384732743,
+  "timestampNBrG": 4384732743,
+  "campaign_item_id__askd": 123,
+  "campaign_item_id__askm75o": "asd",
+  "campaign_item_id_array__askd": [
+    123,
+    null,
+    123
+  ],
+  "campaign_item_id_array__ask": [
+    "asd",
+    "asd",
+    null
+  ],
+  "txidQuZ8": "3y4432642378423"
+}

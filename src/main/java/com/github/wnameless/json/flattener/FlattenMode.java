@@ -39,6 +39,11 @@ public enum FlattenMode {
   /**
    * Conforms to MongoDB dot.notation to update also nested documents.
    */
-  MONGODB;
+  MONGODB,
+
+  /**
+   * Group identical attributes in an array
+   */
+  GROUP_ARRAY_ATTRIBUTES;
 
 }

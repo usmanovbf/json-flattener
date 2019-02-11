@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * Copyright 2015 Wei-Ming Wu
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -17,28 +17,32 @@
  */
 package com.github.wnameless.json.flattener;
 
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonObject.Member;
+import com.eclipsesource.json.JsonValue;
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import static com.github.wnameless.json.flattener.FlattenMode.MONGODB;
 import static com.github.wnameless.json.flattener.IndexedPeekIterator.newIndexedPeekIterator;
 import static java.util.Collections.emptyMap;
 import static org.apache.commons.lang3.Validate.isTrue;
 import static org.apache.commons.lang3.Validate.notNull;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.StringUtils;
-
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject.Member;
-import com.eclipsesource.json.JsonValue;
-
 /**
- * 
+ *
  * {@link JsonFlattener} flattens any JSON nested objects or arrays into a
  * flattened JSON string or a Map{@literal <Stirng, Object>}. The String key
  * will represents the corresponding position of value in the original nested
@@ -79,7 +83,7 @@ public final class JsonFlattener {
 
   /**
    * Returns a flattened JSON string.
-   * 
+   *
    * @param json
    *          the JSON string
    * @return a flattened JSON string
@@ -90,7 +94,7 @@ public final class JsonFlattener {
 
   /**
    * Returns a flattened JSON as Map.
-   * 
+   *
    * @param json
    *          the JSON string
    * @return a flattened JSON as Map
@@ -106,15 +110,15 @@ public final class JsonFlattener {
 
   private FlattenMode flattenMode = FlattenMode.NORMAL;
   private CharSequenceTranslatorFactory policy = StringEscapePolicy.DEFAULT;
-  private Character separator = '.';
-  private Character leftBracket = '[';
-  private Character rightBracket = ']';
+  private String separator = ".";
+  private String leftBracket = "[";
+  private String rightBracket = "]";
   private PrintMode printMode = PrintMode.MINIMAL;
   private KeyTransformer keyTrans = null;
 
   /**
    * Creates a JSON flattener.
-   * 
+   *
    * @param json
    *          the JSON string
    */
@@ -124,7 +128,7 @@ public final class JsonFlattener {
 
   /**
    * Creates a JSON flattener.
-   * 
+   *
    * @param jsonReader
    *          the JSON reader
    * @throws IOException
@@ -136,7 +140,7 @@ public final class JsonFlattener {
 
   /**
    * A fluent setter to setup a mode of the {@link JsonFlattener}.
-   * 
+   *
    * @param flattenMode
    *          a {@link FlattenMode}
    * @return this {@link JsonFlattener}
@@ -149,7 +153,7 @@ public final class JsonFlattener {
 
   /**
    * A fluent setter to setup the JSON string escape policy.
-   * 
+   *
    * @param policy
    *          any {@link CharSequenceTranslatorFactory} or a
    *          {@link StringEscapePolicy}
@@ -165,18 +169,16 @@ public final class JsonFlattener {
   /**
    * A fluent setter to setup the separator within a key in the flattened JSON.
    * The default separator is a dot(.).
-   * 
+   *
    * @param separator
    *          any character
    * @return this {@link JsonFlattener}
    */
-  public JsonFlattener withSeparator(char separator) {
-    isTrue(!Character.toString(separator).matches("[\"\\s]"),
-        "Separator contains illegal chracter(%s)",
-        Character.toString(separator));
+  public JsonFlattener withSeparator(String separator) {
+    isTrue(!separator.matches("[\"\\s]"),
+        "Separator contains illegal chracter(%s)", separator);
     isTrue(!leftBracket.equals(separator) && !rightBracket.equals(separator),
-        "Separator(%s) is already used in brackets",
-        Character.toString(separator));
+        "Separator(%s) is already used in brackets", separator);
 
     this.separator = separator;
     flattenedMap = null;
@@ -184,29 +186,28 @@ public final class JsonFlattener {
   }
 
   private String illegalBracketsRegex() {
-    return "[\"\\s" + Pattern.quote(this.separator.toString()) + "]";
+    return "[\"\\s" + Pattern.quote(this.separator) + "]";
   }
 
   /**
    * A fluent setter to setup the left and right brackets within a key in the
    * flattened JSON. The default left and right brackets are left square
    * bracket([) and right square bracket(]).
-   * 
+   *
    * @param leftBracket
    *          any character
    * @param rightBracket
    *          any character
    * @return this {@link JsonFlattener}
    */
-  public JsonFlattener withLeftAndRightBrackets(char leftBracket,
-      char rightBracket) {
-    isTrue(leftBracket != rightBracket, "Both brackets cannot be the same");
-    isTrue(!Character.toString(leftBracket).matches(illegalBracketsRegex()),
+  public JsonFlattener withLeftAndRightBrackets(String leftBracket,
+                                                String rightBracket) {
+    isTrue(!leftBracket.matches(illegalBracketsRegex()),
         "Left bracket contains illegal chracter(%s)",
-        Character.toString(leftBracket));
-    isTrue(!Character.toString(rightBracket).matches(illegalBracketsRegex()),
+           leftBracket);
+    isTrue(!rightBracket.matches(illegalBracketsRegex()),
         "Right bracket contains illegal chracter(%s)",
-        Character.toString(rightBracket));
+           rightBracket);
 
     this.leftBracket = leftBracket;
     this.rightBracket = rightBracket;
@@ -217,7 +218,7 @@ public final class JsonFlattener {
   /**
    * A fluent setter to setup a print mode of the {@link JsonFlattener}. The
    * default print mode is minimal.
-   * 
+   *
    * @param printMode
    *          a {@link PrintMode}
    * @return this {@link JsonFlattener}
@@ -230,7 +231,7 @@ public final class JsonFlattener {
   /**
    * A fluent setter to setup a {@link KeyTransformer} of the
    * {@link JsonFlattener}.
-   * 
+   *
    * @param keyTrans
    *          a {@link KeyTransformer}
    * @return this {@link JsonFlattener}
@@ -243,7 +244,7 @@ public final class JsonFlattener {
 
   /**
    * Returns a flattened JSON string.
-   * 
+   *
    * @return a flattened JSON string
    */
   public String flatten() {
@@ -279,7 +280,7 @@ public final class JsonFlattener {
 
   /**
    * Returns a flattened JSON as Map.
-   * 
+   *
    * @return a flattened JSON as Map
    */
   public Map<String, Object> flattenAsMap() {
@@ -316,24 +317,93 @@ public final class JsonFlattener {
           }
           flattenedMap.put(computeKey(), array);
           break;
-        default:
+      case GROUP_ARRAY_ATTRIBUTES: // group same attributes in array and convert this JsonArray to JsonObject
+          HashMap<String, ArrayList<String>> groupedAttributes = new HashMap<>();
+          JsonObject groupedJsonObject = new JsonObject();
+
+          //check is it not complext array
+          Iterator<JsonValue> arrayIterator = val.asArray().iterator();
+          boolean isArrayWithSimpleValues = true;
+          while (arrayIterator.hasNext()) {
+              JsonValue next = arrayIterator.next();
+              if (next.isArray() || next.isObject()) {
+                  isArrayWithSimpleValues = false;
+                  break;
+              }
+          }
+
+          if (isArrayWithSimpleValues) {
+              putKeyAndValueToFlattenedMap(val);
+              break;
+          }
+
+          for (JsonValue attr : val.asArray()) {
+              if (attr.isArray()) {
+                  //todo
+              } else if (attr.isObject()) {
+                  JsonObject subAttrJsonObject = attr.asObject();
+                  Iterator<Member> iterator = subAttrJsonObject.iterator();
+                  while (iterator.hasNext()) {
+                      Member member = iterator.next();
+                      if (!member.getValue().isObject() && !member.getValue().isArray()) {
+                          JsonArray jsonArray;
+
+                          if (groupedJsonObject.get(member.getName()) == null) {
+                               jsonArray = new JsonArray();
+                              groupedJsonObject.add(member.getName(), jsonArray);
+
+                          } else {
+                              jsonArray = (JsonArray) groupedJsonObject.get(member.getName());
+                          }
+
+                          addUntypedValueToJsonArray(member.getValue(), jsonArray);
+                      } else {
+                          //todo
+                      }
+                  }
+              }
+          }
+          elementIters.add(newIndexedPeekIterator(groupedJsonObject.asObject()));
+          break;
+      default:
           elementIters.add(newIndexedPeekIterator(val.asArray()));
       }
     } else {
-      String key = computeKey();
-      Object value = jsonVal2Obj(val);
-      // Check NOT empty JSON object
-      if (!(ROOT.equals(key) && emptyMap().equals(value)))
-        flattenedMap.put(key, jsonVal2Obj(val));
+        putKeyAndValueToFlattenedMap(val);
     }
   }
 
-  private Object jsonVal2Obj(JsonValue val) {
+    private void putKeyAndValueToFlattenedMap(JsonValue val) {
+        String key = computeKey();
+        Object value = jsonVal2Obj(val);
+        // Check NOT empty JSON object
+        if (!(ROOT.equals(key) && emptyMap().equals(value)))
+          flattenedMap.put(key, jsonVal2Obj(val));
+    }
+
+    private void addUntypedValueToJsonArray(JsonValue value, JsonArray jsonArray) {
+        if (value.isString()) {
+            jsonArray.add(value.asString());
+        } else if (value.isNumber()) {
+            try {
+                jsonArray.add(value.asLong());
+            } catch (NumberFormatException e) {
+                jsonArray.add(value.asDouble());
+            }
+        } else if (value.isNull()) {
+            jsonArray.add(Json.NULL);
+        } else if (value.isBoolean()) {
+            jsonArray.add(value.asBoolean());
+        }
+    }
+
+    private Object jsonVal2Obj(JsonValue val) {
     if (val.isBoolean()) return val.asBoolean();
     if (val.isString()) return val.asString();
     if (val.isNumber()) return new BigDecimal(val.toString());
     switch (flattenMode) {
-      case KEEP_ARRAYS:
+    case GROUP_ARRAY_ATTRIBUTES:
+    case KEEP_ARRAYS :
         if (val.isArray()) {
           JsonifyArrayList<Object> array = newJsonifyArrayList();
           for (JsonValue value : val.asArray()) {
@@ -375,18 +445,8 @@ public final class JsonFlattener {
       if (iter.getCurrent() instanceof Member) {
         String key = ((Member) iter.getCurrent()).getName();
         if (keyTrans != null) key = keyTrans.transform(key);
-        if (hasReservedCharacters(key)) {
-          sb.append(leftBracket);
-          sb.append('\\');
-          sb.append('"');
-          sb.append(policy.getCharSequenceTranslator().translate(key));
-          sb.append('\\');
-          sb.append('"');
-          sb.append(rightBracket);
-        } else {
           if (sb.length() != 0) sb.append(separator);
           sb.append(policy.getCharSequenceTranslator().translate(key));
-        }
       } else { // JsonValue
         sb.append(flattenMode.equals(MONGODB) ? separator : leftBracket);
         sb.append(iter.getIndex());

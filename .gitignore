@@ -4,4 +4,6 @@
 /target
 .DS_Store
 .README.md.html
+.idea
+*.iml
 
