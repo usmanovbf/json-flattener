@@ -529,6 +529,7 @@ public class JsonFlattenerTest {
                 .withSeparator("__")
                 .flatten();
 
+        System.out.println(actualJson);
 
     }
 }

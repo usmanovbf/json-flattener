@@ -31,8 +31,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static com.github.wnameless.json.flattener.FlattenMode.MONGODB;
@@ -337,6 +339,17 @@ public final class JsonFlattener {
               break;
           }
 
+          Set<String> allAttributeKeys = new HashSet<>();
+
+          for (JsonValue attr : val.asArray()) {
+              if (attr.isArray()) {
+                  //todo
+              } else if (attr.isObject()) {
+                  attr.asObject().iterator()
+                      .forEachRemaining(member -> allAttributeKeys.add(member.getName()));
+              }
+          }
+
           for (JsonValue attr : val.asArray()) {
               if (attr.isArray()) {
                   //todo
@@ -361,6 +374,21 @@ public final class JsonFlattener {
                           //todo
                       }
                   }
+                  // = allAttributeKeys - subAttrJsonObject
+                  ArrayList<String> missingNullAttributesKeys = new ArrayList<>(allAttributeKeys);
+                  missingNullAttributesKeys.removeAll(subAttrJsonObject.names());
+                  missingNullAttributesKeys.forEach(missingAttrKey-> {
+                      JsonArray jsonArray;
+
+                      if (groupedJsonObject.get(missingAttrKey) == null) {
+                          jsonArray = new JsonArray();
+                          groupedJsonObject.add(missingAttrKey, jsonArray);
+
+                      } else {
+                          jsonArray = (JsonArray) groupedJsonObject.get(missingAttrKey);
+                      }
+                      jsonArray.add(Json.NULL);
+                  });
               }
           }
           elementIters.add(newIndexedPeekIterator(groupedJsonObject.asObject()));
